@@ -73,7 +73,9 @@
 
       const params = new URLSearchParams({ pair, category, duration, balance, risk });
       try {
+
         const res = await fetch('http://localhost:3000/api/signal?' + params.toString());
+
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
         renderSignals([data]);
