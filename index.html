@@ -38,41 +38,69 @@
     <div class="panel">
       <h2>Trade Signals</h2>
       <div class="form-grid">
-        <select>
+        <input id="pair" type="text" placeholder="Pair (e.g. EUR/USD or AUTO)" value="AUTO" />
+        <select id="category">
           <option>Forex</option>
-          <option>Crypto</option>
           <option>Commodities</option>
+          <option>Indices</option>
+          <option>Stocks</option>
+          <option>Crypto</option>
         </select>
-        <select>
-          <option>1 hour</option>
-          <option>4 hour</option>
-          <option>1 day</option>
+        <select id="duration">
+          <option>1min</option>
+          <option>5min</option>
+          <option>15min</option>
+          <option>30min</option>
+          <option selected>1h</option>
+          <option>4h</option>
         </select>
-        <input type="number" placeholder="Balance" value="1000" />
-        <input type="number" placeholder="Risk (%)" value="2" />
-        <button>Generate Signals</button>
+        <input id="balance" type="number" placeholder="Balance" value="1000" />
+        <input id="risk" type="number" placeholder="Risk (%)" value="2" />
+        <button id="generate">Get Signal</button>
       </div>
-      <div class="signals">
-        <div class="signal-card">
-          <h3>EUR/USD</h3>
-          <div class="buy">Buy at Market</div>
-          <p>Entry: 1.1387<br/>Stop Loss: 1.1490<br/>Take Profit: 1.1300<br/>Valid For: <span class="valid">4 hours</span></p>
-          <p>Reason: Price is above the 50 and 200</p>
-        </div>
-        <div class="signal-card">
-          <h3>USD/JPY</h3>
-          <div class="sell">Sell at Market</div>
-          <p>Entry: 1.1387<br/>Stop Loss: 1.1490<br/>Take Profit: 4 hours<br/>Valid For: <span class="valid">4.9</span></p>
-          <p>Reason: Overbought conditions on RSI</p>
-        </div>
-        <div class="signal-card">
-          <h3>GBP/USD</h3>
-          <div class="buy">Buy at Market</div>
-          <p>Entry: 1.1587<br/>Stop Loss: 1.3000<br/>Take Profit: 4 hours<br/>Valid For: <span class="valid">8.0</span></p>
-          <p>Reason: Positive sentiment and market news</p>
-        </div>
-      </div>
-    </div>
+  <div class="signals">
+    <!-- Results will appear here -->
   </div>
+  </div>
+  </div>
+  <script>
+    async function fetchSignal() {
+      const pair = document.getElementById('pair').value;
+      const category = document.getElementById('category').value;
+      const duration = document.getElementById('duration').value;
+      const balance = document.getElementById('balance').value;
+      const risk = document.getElementById('risk').value;
+
+      const params = new URLSearchParams({ pair, category, duration, balance, risk });
+      try {
+        const res = await fetch('/api/signal?' + params.toString());
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        renderSignals([data]);
+      } catch (err) {
+        console.error(err);
+        document.querySelector('.signals').innerHTML = '<p>Error fetching signal</p>';
+      }
+    }
+
+    function renderSignals(signals) {
+      const container = document.querySelector('.signals');
+      container.innerHTML = '';
+      signals.forEach(sig => {
+        const card = document.createElement('div');
+        card.className = 'signal-card';
+        const typeClass = sig.type.toLowerCase().includes('buy') ? 'buy' : 'sell';
+        card.innerHTML = `
+          <h3>${sig.pair}</h3>
+          <div class="${typeClass}">${sig.type}</div>
+          <p>Entry: ${sig.entry}<br/>Stop Loss: ${sig.sl}<br/>Take Profit: ${sig.tp}<br/>Valid For: <span class="valid">${sig.validFor}</span></p>
+          <p>Reason: ${sig.reason}</p>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    document.getElementById('generate').addEventListener('click', fetchSignal);
+  </script>
 </body>
 </html>
