@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sargon Trading Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    body { margin: 0; background-color: #f7f9fb; color: #1D3557; }
+    header { background-color: #1D3557; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    header nav a { margin-left: 2rem; color: white; text-decoration: none; font-weight: 500; }
+    .container { max-width: 1200px; margin: auto; padding: 2rem; }
+    .panel { background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05); margin-bottom: 2rem; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    .form-grid input, .form-grid select, .form-grid button { padding: 0.75rem; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
+    .form-grid button { background-color: #2A9D8F; color: white; border: none; font-weight: bold; cursor: pointer; }
+    .signals { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+    .signal-card { background-color: white; padding: 1rem; border: 1px solid #eee; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+    .signal-card h3 { margin: 0 0 0.5rem; }
+    .buy { color: green; font-weight: bold; }
+    .sell { color: red; font-weight: bold; }
+    .valid { color: #2A9D8F; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <header>
+    <div><strong>SARGON TRADING</strong></div>
+    <nav>
+      <a href="#">Dashboard</a>
+      <a href="#">History</a>
+      <a href="#">News</a>
+      <a href="#">English</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="panel">
+      <h2>Trade Signals</h2>
+      <div class="form-grid">
+        <select>
+          <option>Forex</option>
+          <option>Crypto</option>
+          <option>Commodities</option>
+        </select>
+        <select>
+          <option>1 hour</option>
+          <option>4 hour</option>
+          <option>1 day</option>
+        </select>
+        <input type="number" placeholder="Balance" value="1000" />
+        <input type="number" placeholder="Risk (%)" value="2" />
+        <button>Generate Signals</button>
+      </div>
+      <div class="signals">
+        <div class="signal-card">
+          <h3>EUR/USD</h3>
+          <div class="buy">Buy at Market</div>
+          <p>Entry: 1.1387<br/>Stop Loss: 1.1490<br/>Take Profit: 1.1300<br/>Valid For: <span class="valid">4 hours</span></p>
+          <p>Reason: Price is above the 50 and 200</p>
+        </div>
+        <div class="signal-card">
+          <h3>USD/JPY</h3>
+          <div class="sell">Sell at Market</div>
+          <p>Entry: 1.1387<br/>Stop Loss: 1.1490<br/>Take Profit: 4 hours<br/>Valid For: <span class="valid">4.9</span></p>
+          <p>Reason: Overbought conditions on RSI</p>
+        </div>
+        <div class="signal-card">
+          <h3>GBP/USD</h3>
+          <div class="buy">Buy at Market</div>
+          <p>Entry: 1.1587<br/>Stop Loss: 1.3000<br/>Take Profit: 4 hours<br/>Valid For: <span class="valid">8.0</span></p>
+          <p>Reason: Positive sentiment and market news</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
