@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sargon Trading Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
     body { margin: 0; background-color: #f7f9fb; color: #1D3557; }
@@ -21,6 +21,9 @@
     .buy { color: green; font-weight: bold; }
     .sell { color: red; font-weight: bold; }
     .valid { color: #2A9D8F; font-weight: bold; }
+    .confidence { background: #eee; border-radius: 4px; height: 10px; position: relative; margin-top: 0.5rem; }
+    .confidence-bar { height: 100%; border-radius: 4px; }
+    .confidence-label { position: absolute; top: -1.2rem; right: 0; font-size: 0.8rem; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -38,41 +41,121 @@
     <div class="panel">
       <h2>Trade Signals</h2>
       <div class="form-grid">
-        <select>
+        <select id="category">
           <option>Forex</option>
-          <option>Crypto</option>
           <option>Commodities</option>
+          <option>Indices</option>
+          <option>Stocks</option>
+          <option>Crypto</option>
         </select>
-        <select>
-          <option>1 hour</option>
-          <option>4 hour</option>
-          <option>1 day</option>
+        <select id="pairs" multiple size="5"></select>
+        <select id="duration">
+          <option>1min</option>
+          <option>5min</option>
+          <option>15min</option>
+          <option>30min</option>
+          <option selected>1h</option>
+          <option>4h</option>
         </select>
-        <input type="number" placeholder="Balance" value="1000" />
-        <input type="number" placeholder="Risk (%)" value="2" />
-        <button>Generate Signals</button>
+        <input id="balance" type="number" placeholder="Balance" value="1000" />
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <input id="risk" type="range" min="1" max="5" step="0.1" value="2" />
+          <span id="riskVal">2%</span>
+        </div>
+        <button id="generate">Generate</button>
       </div>
-      <div class="signals">
-        <div class="signal-card">
-          <h3>EUR/USD</h3>
-          <div class="buy">Buy at Market</div>
-          <p>Entry: 1.1387<br/>Stop Loss: 1.1490<br/>Take Profit: 1.1300<br/>Valid For: <span class="valid">4 hours</span></p>
-          <p>Reason: Price is above the 50 and 200</p>
-        </div>
-        <div class="signal-card">
-          <h3>USD/JPY</h3>
-          <div class="sell">Sell at Market</div>
-          <p>Entry: 1.1387<br/>Stop Loss: 1.1490<br/>Take Profit: 4 hours<br/>Valid For: <span class="valid">4.9</span></p>
-          <p>Reason: Overbought conditions on RSI</p>
-        </div>
-        <div class="signal-card">
-          <h3>GBP/USD</h3>
-          <div class="buy">Buy at Market</div>
-          <p>Entry: 1.1587<br/>Stop Loss: 1.3000<br/>Take Profit: 4 hours<br/>Valid For: <span class="valid">8.0</span></p>
-          <p>Reason: Positive sentiment and market news</p>
-        </div>
-      </div>
-    </div>
+  <div class="signals">
+    <!-- Results will appear here -->
   </div>
+  </div>
+  </div>
+  <script>
+    const pairsByCategory = {
+      Forex: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'USD/CAD', 'AUD/USD'],
+      Commodities: ['Gold', 'Silver', 'Oil', 'Natural Gas'],
+      Indices: ['S&P 500', 'Dow Jones', 'NASDAQ', 'FTSE 100'],
+      Stocks: ['AAPL', 'GOOG', 'AMZN', 'MSFT'],
+      Crypto: ['BTC/USD', 'ETH/USD', 'XRP/USD', 'LTC/USD']
+    };
+
+    function populatePairs(category) {
+      const select = document.getElementById('pairs');
+      select.innerHTML = '<option value="AUTO">AUTO</option>';
+      pairsByCategory[category].forEach(p => {
+        const opt = document.createElement('option');
+        opt.textContent = p;
+        opt.value = p;
+        select.appendChild(opt);
+      });
+    }
+
+    document.getElementById('category').addEventListener('change', e => {
+      populatePairs(e.target.value);
+    });
+
+    document.getElementById('risk').addEventListener('input', e => {
+      document.getElementById('riskVal').textContent = e.target.value + '%';
+    });
+
+    populatePairs(document.getElementById('category').value);
+
+    async function fetchSignals() {
+      const select = document.getElementById('pairs');
+      let pairs = Array.from(select.selectedOptions).map(o => o.value);
+      const category = document.getElementById('category').value;
+      const duration = document.getElementById('duration').value;
+      const balance = document.getElementById('balance').value;
+      const risk = document.getElementById('risk').value;
+
+      if (pairs.includes('AUTO')) {
+        pairs = pairsByCategory[category];
+      }
+
+      const results = [];
+      for (const pair of pairs) {
+        const params = new URLSearchParams({ pair, category, duration, balance, risk });
+        try {
+          const res = await fetch('http://localhost:3000/api/signal?' + params.toString());
+          if (res.ok) {
+            const data = await res.json();
+            results.push(data);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      if (results.length) {
+        renderSignals(results);
+      } else {
+        document.querySelector('.signals').innerHTML = '<p>Error fetching signal</p>';
+      }
+    }
+
+    function renderSignals(signals) {
+      const container = document.querySelector('.signals');
+      container.innerHTML = '';
+      signals.forEach(sig => {
+        const card = document.createElement('div');
+        card.className = 'signal-card';
+        const typeClass = sig.type.toLowerCase().includes('buy') ? 'buy' : 'sell';
+        const confidence = sig.confidence || 0;
+        const go = confidence >= 7;
+        card.innerHTML = `
+          <h3>${sig.pair}</h3>
+          <div class="${typeClass}">${sig.type}</div>
+          <p>Entry: ${sig.entry}<br/>Stop Loss: ${sig.sl}<br/>Take Profit: ${sig.tp}<br/>Valid For: <span class="valid">${sig.validFor}</span></p>
+          <p>Reason: ${sig.reason}</p>
+          <div class="confidence">
+            <div class="confidence-bar" style="width:${confidence * 10}%;background:${go ? '#2ecc71' : '#e74c3c'}"></div>
+            <span class="confidence-label">${confidence}/10</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    document.getElementById('generate').addEventListener('click', fetchSignals);
+  </script>
 </body>
 </html>
