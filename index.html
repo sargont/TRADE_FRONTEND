@@ -15,6 +15,7 @@
     .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
     .form-grid input, .form-grid select, .form-grid button { padding: 0.75rem; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
     .form-grid button { background-color: #2A9D8F; color: white; border: none; font-weight: bold; cursor: pointer; }
+    .form-grid label { display: block; margin-bottom: 0.25rem; font-weight: 600; }
     .signals { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
     .signal-card { background-color: white; padding: 1rem; border: 1px solid #eee; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
     .signal-card h3 { margin: 0 0 0.5rem; }
@@ -41,26 +42,41 @@
     <div class="panel">
       <h2>Trade Signals</h2>
       <div class="form-grid">
-        <select id="category">
-          <option>Forex</option>
-          <option>Commodities</option>
-          <option>Indices</option>
-          <option>Stocks</option>
-          <option>Crypto</option>
-        </select>
-        <select id="pairs" multiple size="5"></select>
-        <select id="duration">
-          <option>1min</option>
-          <option>5min</option>
-          <option>15min</option>
-          <option>30min</option>
-          <option selected>1h</option>
-          <option>4h</option>
-        </select>
-        <input id="balance" type="number" placeholder="Balance" value="1000" />
-        <div style="display:flex;align-items:center;gap:0.5rem;">
-          <input id="risk" type="range" min="1" max="5" step="0.1" value="2" />
-          <span id="riskVal">2%</span>
+        <div class="field">
+          <label for="category">Category</label>
+          <select id="category">
+            <option>Forex</option>
+            <option>Commodities</option>
+            <option>Indices</option>
+            <option>Stocks</option>
+            <option>Crypto</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pairs">Pairs</label>
+          <select id="pairs" multiple size="5"></select>
+        </div>
+        <div class="field">
+          <label for="duration">Duration</label>
+          <select id="duration">
+            <option>1min</option>
+            <option>5min</option>
+            <option>15min</option>
+            <option>30min</option>
+            <option selected>1h</option>
+            <option>4h</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="balance">Balance</label>
+          <input id="balance" type="number" placeholder="Balance" value="1000" />
+        </div>
+        <div class="field">
+          <label for="risk">Risk (%)</label>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <input id="risk" type="range" min="1" max="5" step="0.1" value="2" />
+            <span id="riskVal">2%</span>
+          </div>
         </div>
         <button id="generate">Generate</button>
       </div>
