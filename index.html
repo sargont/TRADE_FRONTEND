@@ -94,6 +94,29 @@
       Crypto: ['BTC/USD', 'ETH/USD', 'XRP/USD', 'LTC/USD']
     };
 
+    // Basic test data used when API calls fail
+    function dummySignal(pair, duration, balance, risk) {
+      const direction = Math.random() > 0.5 ? 'Buy' : 'Sell';
+      const entry = (Math.random() * 2 + 1).toFixed(5);
+      const sl = (entry - 0.01).toFixed(5);
+      const tp = (parseFloat(entry) + 0.01).toFixed(5);
+      const confidence = Math.round((Math.random() * 9 + 1) * 10) / 10;
+      return {
+        pair,
+        duration,
+        balance: Number(balance),
+        risk: Number(risk),
+        stake: ((balance * risk) / 10000).toFixed(2),
+        type: `${direction} Market`,
+        validFor: '4h',
+        entry,
+        sl,
+        tp,
+        reason: 'Sample data - API unavailable',
+        confidence
+      };
+    }
+
     function populatePairs(category) {
       const select = document.getElementById('pairs');
       select.innerHTML = '<option value="AUTO">AUTO</option>';
@@ -132,19 +155,19 @@
         const params = new URLSearchParams({ pair, category, duration, balance, risk });
         try {
           const res = await fetch('http://localhost:3000/api/signal?' + params.toString());
-          if (res.ok) {
-            const data = await res.json();
-            results.push(data);
-          }
+          if (!res.ok) throw new Error('Bad response');
+          const data = await res.json();
+          results.push(data);
         } catch (err) {
-          console.error(err);
+          console.warn('API failed, using dummy data for', pair);
+          results.push(dummySignal(pair, duration, balance, risk));
         }
       }
 
       if (results.length) {
         renderSignals(results);
       } else {
-        document.querySelector('.signals').innerHTML = '<p>Error fetching signal</p>';
+        document.querySelector('.signals').innerHTML = '<p>No signals available</p>';
       }
     }
 
