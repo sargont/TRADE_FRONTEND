@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trade History - Sargon Trading</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>body{font-family:'Inter',sans-serif}</style>
+</head>
+<body class="bg-gray-100">
+  <header class="bg-indigo-700 text-white p-4 flex justify-between">
+    <div class="font-bold">SARGON TRADING</div>
+    <nav class="space-x-4">
+      <a href="index.html" class="underline">Home</a>
+      <a href="dashboard.html" class="underline">Dashboard</a>
+      <a href="history.html" class="underline">History</a>
+    </nav>
+  </header>
+  <main class="max-w-3xl mx-auto p-6 space-y-6">
+    <section>
+      <h2 class="text-xl font-bold mb-4">Open Trades</h2>
+      <div id="openList" class="space-y-2"></div>
+    </section>
+    <section>
+      <h2 class="text-xl font-bold mb-4">Closed Trades</h2>
+      <div id="historyList" class="space-y-2"></div>
+    </section>
+  </main>
+  <script>
+    function loadHistory(){
+      const openList = document.getElementById('openList');
+      const historyDiv = document.getElementById('historyList');
+      openList.innerHTML = '';
+      historyDiv.innerHTML = '';
+
+      const openTrades = JSON.parse(localStorage.getItem('openTrades') || '[]');
+      if(!openTrades.length){
+        openList.textContent = 'No open trades.';
+      } else {
+        openTrades.forEach((tr, i) => {
+          const div = document.createElement('div');
+          div.className = 'border p-2 rounded flex justify-between items-center';
+          div.innerHTML = `<div>${tr.pair} - ${tr.type}</div>
+            <div class="flex gap-2">
+              <button class="win bg-green-600 text-white px-2 py-1 rounded text-sm">Won</button>
+              <button class="lose bg-red-600 text-white px-2 py-1 rounded text-sm">Lost</button>
+              <button class="reassess bg-indigo-600 text-white px-2 py-1 rounded text-sm">Re-assess</button>
+            </div>`;
+          div.querySelector('.win').addEventListener('click', () => closeTrade(i, true));
+          div.querySelector('.lose').addEventListener('click', () => closeTrade(i, false));
+          div.querySelector('.reassess').addEventListener('click', () => reassessTrade(tr));
+          openList.appendChild(div);
+        });
+      }
+
+      const history = JSON.parse(localStorage.getItem('history') || '[]');
+      if(!history.length){
+        historyDiv.textContent = 'No closed trades yet.';
+      } else {
+        history.forEach(tr => {
+          const div = document.createElement('div');
+          div.className = 'border p-2 rounded';
+          div.textContent = `${tr.pair} - ${tr.type} (${tr.result})`;
+          historyDiv.appendChild(div);
+        });
+      }
+    }
+
+    function saveState(open, hist){
+      localStorage.setItem('openTrades', JSON.stringify(open));
+      localStorage.setItem('history', JSON.stringify(hist));
+    }
+
+    function closeTrade(index, won){
+      const open = JSON.parse(localStorage.getItem('openTrades') || '[]');
+      const hist = JSON.parse(localStorage.getItem('history') || '[]');
+      const trade = open.splice(index,1)[0];
+      trade.result = won ? 'won' : 'lost';
+      hist.push(trade);
+      saveState(open, hist);
+      loadHistory();
+    }
+
+    function reassessTrade(trade){
+      fetch('http://localhost:3000/api/reassess-trades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trades: [trade] })
+      })
+      .then(r => r.json())
+      .then(() => alert('Re-assessment complete'))
+      .catch(() => alert('Failed to reassess'));
+    }
+
+    loadHistory();
+  </script>
+</body>
+</html>
