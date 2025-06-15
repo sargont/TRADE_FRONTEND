@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sargon Trading Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    body { margin: 0; background-color: #f7f9fb; color: #1D3557; }
+    header { background-color: #1D3557; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    header nav a { margin-left: 2rem; color: white; text-decoration: none; font-weight: 500; }
+    .container { max-width: 1200px; margin: auto; padding: 2rem; }
+    .panel { background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05); margin-bottom: 2rem; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+      .form-grid input, .form-grid select, .form-grid button { padding: 0.75rem; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
+      .form-grid button { background-color: #2A9D8F; color: white; border: none; font-weight: bold; cursor: pointer; width: 100%; grid-column: 1 / -1; }
+    .form-grid label { display: block; margin-bottom: 0.25rem; font-weight: 600; }
+    .signals { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+    .signal-card { background-color: white; padding: 1rem; border: 1px solid #eee; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+    .signal-card h3 { margin: 0 0 0.5rem; }
+    .buy { color: green; font-weight: bold; }
+    .sell { color: red; font-weight: bold; }
+    .valid { color: #2A9D8F; font-weight: bold; }
+    .confidence { background: #eee; border-radius: 4px; height: 10px; position: relative; margin-top: 0.5rem; }
+    .confidence-bar { height: 100%; border-radius: 4px; }
+    .confidence-label { position: absolute; top: -1.2rem; right: 0; font-size: 0.8rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <header>
+    <div><strong>SARGON TRADING</strong></div>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="history.html">History</a>
+    </nav>
+    <div class="flex items-center gap-4">
+      <span>Credits: <span id="creditBalance">0</span></span>
+      <button id="buyCreditsBtn" class="bg-indigo-600 text-white px-3 py-1 rounded">Buy Credits</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="panel">
+      <h2>Trade Signals</h2>
+      <div class="form-grid">
+        <div class="field">
+          <label for="category">Category</label>
+          <select id="category">
+            <option>Forex</option>
+            <option>Commodities</option>
+            <option>Indices</option>
+            <option>Stocks</option>
+            <option>Crypto</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pairs">Pairs</label>
+          <select id="pairs" multiple size="5"></select>
+        </div>
+        <div class="field">
+          <label for="duration">Duration</label>
+          <select id="duration">
+            <option>1min</option>
+            <option>5min</option>
+            <option>15min</option>
+            <option>30min</option>
+            <option selected>1h</option>
+            <option>4h</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="balance">Balance</label>
+          <input id="balance" type="number" placeholder="Balance" value="1000" />
+        </div>
+        <div class="field">
+          <label for="risk">Risk (%)</label>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <input id="risk" type="range" min="1" max="5" step="0.1" value="2" />
+            <span id="riskVal">2%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Cost</label>
+          <div id="costNotice">0 credit</div>
+        </div>
+        <button id="generate">Generate</button>
+      </div>
+  <div class="flex gap-2 mb-2">
+    <button id="commitSelected" class="bg-green-600 text-white px-3 py-1 rounded">Commit Selected</button>
+    <button id="rejectSelected" class="bg-red-600 text-white px-3 py-1 rounded">Reject Selected</button>
+  </div>
+  <div class="signals">
+    <!-- Results will appear here -->
+  </div>
+  </div>
+  </div>
+  <div class="panel" id="openTradesPanel">
+    <h2>Open Trades</h2>
+    <div class="open-trades space-y-2"></div>
+  </div>
+  <script>
+    const pairsByCategory = {
+      Forex: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'USD/CAD', 'AUD/USD'],
+      Commodities: ['Gold', 'Silver', 'Oil', 'Natural Gas'],
+      Indices: ['S&P 500', 'Dow Jones', 'NASDAQ', 'FTSE 100'],
+      Stocks: ['AAPL', 'GOOG', 'AMZN', 'MSFT'],
+      Crypto: ['BTC/USD', 'ETH/USD', 'XRP/USD', 'LTC/USD']
+    };
+
+    // Basic test data used when API calls fail
+    function dummySignal(pair, duration, balance, risk) {
+      const direction = Math.random() > 0.5 ? 'Buy' : 'Sell';
+      const entry = (Math.random() * 2 + 1).toFixed(5);
+      const sl = (entry - 0.01).toFixed(5);
+      const tp = (parseFloat(entry) + 0.01).toFixed(5);
+      const confidence = Math.round((Math.random() * 9 + 1) * 10) / 10;
+      return {
+        pair,
+        duration,
+        balance: Number(balance),
+        risk: Number(risk),
+        stake: ((balance * risk) / 10000).toFixed(2),
+        type: `${direction} Market`,
+        validFor: '4h',
+        entry,
+        sl,
+        tp,
+        reason: 'Sample data - API unavailable',
+        confidence
+      };
+    }
+
+    function populatePairs(category) {
+      const select = document.getElementById('pairs');
+      select.innerHTML = '<option value="AUTO">AUTO</option>';
+      pairsByCategory[category].forEach(p => {
+        const opt = document.createElement('option');
+        opt.textContent = p;
+        opt.value = p;
+        select.appendChild(opt);
+      });
+    }
+
+    function calculatePairs() {
+      const select = document.getElementById('pairs');
+      let pairs = Array.from(select.selectedOptions).map(o => o.value);
+      const category = document.getElementById('category').value;
+      if (pairs.includes('AUTO')) {
+        pairs = pairsByCategory[category];
+      }
+      return pairs;
+    }
+
+    function updateCost() {
+      const cost = calculatePairs().length;
+      document.getElementById('costNotice').textContent = cost + (cost === 1 ? ' credit' : ' credits');
+      return cost;
+    }
+
+    document.getElementById('category').addEventListener('change', e => {
+      populatePairs(e.target.value);
+      updateCost();
+    });
+
+    document.getElementById('risk').addEventListener('input', e => {
+      document.getElementById('riskVal').textContent = e.target.value + '%';
+    });
+
+    document.getElementById('pairs').addEventListener('change', updateCost);
+
+    populatePairs(document.getElementById('category').value);
+    updateCost();
+
+    async function fetchSignals() {
+      let pairs = calculatePairs();
+      const category = document.getElementById('category').value;
+      const duration = document.getElementById('duration').value;
+      const balance = document.getElementById('balance').value;
+      const risk = document.getElementById('risk').value;
+      const cost = pairs.length;
+
+      if (creditBalance < cost) {
+        showToast('Not enough credit to execute your query. Please top up.');
+        return;
+      }
+
+      const results = [];
+      for (const pair of pairs) {
+        const params = new URLSearchParams({ pair, category, duration, balance, risk });
+        try {
+          const res = await fetch('http://localhost:3000/api/signal?' + params.toString());
+          if (!res.ok) throw new Error('Bad response');
+          const data = await res.json();
+          results.push(data);
+        } catch (err) {
+          console.warn('API failed, using dummy data for', pair);
+          results.push(dummySignal(pair, duration, balance, risk));
+        }
+      }
+
+      if (results.length) {
+        currentSignals = results;
+        renderSignals(results);
+        creditBalance -= cost;
+        document.getElementById('creditBalance').textContent = creditBalance;
+        updateCost();
+      } else {
+        document.querySelector('.signals').innerHTML = '<p>No signals available</p>';
+      }
+    }
+    function renderSignals(signals) {
+      const container = document.querySelector('.signals');
+      container.innerHTML = '';
+      signals.forEach((sig, i) => {
+        const card = document.createElement('div');
+        card.className = 'signal-card';
+        const typeClass = sig.type.toLowerCase().includes('buy') ? 'buy' : 'sell';
+        const confidence = sig.confidence || 0;
+        const go = confidence >= 7;
+        card.innerHTML = `
+          <input type="checkbox" class="select-trade mb-1" data-index="${i}">
+          <h3>${sig.pair}</h3>
+          <div class="${typeClass}">${sig.type}</div>
+          <p>Entry: ${sig.entry}<br/>Stop Loss: ${sig.sl}<br/>Take Profit: ${sig.tp}<br/>Valid For: <span class="valid">${sig.validFor}</span></p>
+          <p>Reason: ${sig.reason}</p>
+          <div class="confidence">
+            <div class="confidence-bar" style="width:${confidence * 10}%;background:${go ? '#2ecc71' : '#e74c3c'}"></div>
+            <span class="confidence-label">${confidence}/10</span>
+          </div>
+          <div class="flex justify-end gap-2 mt-2">
+            <button class="commit bg-green-600 text-white px-2 py-1 rounded text-sm">Commit</button>
+            <button class="reject bg-red-600 text-white px-2 py-1 rounded text-sm">Reject</button>
+          </div>`;
+        card.querySelector('.commit').addEventListener('click', () => commitTrade(sig));
+        card.querySelector('.reject').addEventListener('click', () => rejectTrade(sig));
+        container.appendChild(card);
+      });
+    }
+
+    document.getElementById('generate').addEventListener('click', fetchSignals);
+    document.getElementById("commitSelected").addEventListener("click", commitSelected);
+    document.getElementById("rejectSelected").addEventListener("click", rejectSelected);
+    loadState();
+    renderOpenTrades();
+  </script>
+  <div id="toast" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded hidden"></div>
+  <div id="react-root"></div>
+  <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+  <script>
+    let creditBalance = 0;
+    let openTrades = [];
+    let history = [];
+    let currentSignals = [];
+
+    function saveState() {
+      localStorage.setItem('openTrades', JSON.stringify(openTrades));
+      localStorage.setItem('history', JSON.stringify(history));
+    }
+
+    function loadState() {
+      openTrades = JSON.parse(localStorage.getItem('openTrades') || '[]');
+      history = JSON.parse(localStorage.getItem('history') || '[]');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 3000);
+    }
+
+    function openModal() {
+      ReactDOM.render(
+        React.createElement(BuyCreditsModal, { onClose: closeModal }),
+        document.getElementById('react-root')
+      );
+    }
+
+    function closeModal() {
+      ReactDOM.unmountComponentAtNode(document.getElementById('react-root'));
+    }
+
+    function updateBalance(credits) {
+      creditBalance += credits;
+      document.getElementById('creditBalance').textContent = creditBalance;
+    }
+
+    async function commitTrade(trade) {
+      if (!confirm('Submit trade to Direv for execution?')) return;
+      try {
+        await fetch('http://localhost:3000/api/direv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(trade)
+        });
+        showToast('Trade submitted');
+      } catch (err) {
+        showToast('Direv submission failed');
+        return;
+      }
+      openTrades.push(Object.assign({ id: Date.now() }, trade));
+      saveState();
+      renderOpenTrades();
+    }
+
+    function rejectTrade(trade) {
+      showToast('Trade rejected');
+    }
+
+    function renderOpenTrades() {
+      const container = document.querySelector('.open-trades');
+      container.innerHTML = '';
+      openTrades.forEach((t, i) => {
+        const div = document.createElement('div');
+        div.className = 'border p-2 rounded flex justify-between items-center';
+        div.innerHTML = `<div>${t.pair} - ${t.type}</div>
+          <div class="flex gap-2">
+            <button class="win bg-green-600 text-white px-2 py-1 rounded text-sm">Won</button>
+            <button class="lose bg-red-600 text-white px-2 py-1 rounded text-sm">Lost</button>
+            <button class="reassess bg-indigo-600 text-white px-2 py-1 rounded text-sm">Re-assess</button>
+          </div>`;
+        div.querySelector('.win').addEventListener('click', () => closeTrade(i, true));
+        div.querySelector('.lose').addEventListener('click', () => closeTrade(i, false));
+        div.querySelector('.reassess').addEventListener('click', () => reassessTrade(t));
+        container.appendChild(div);
+      });
+    }
+
+    function closeTrade(index, won) {
+      const trade = openTrades.splice(index, 1)[0];
+      trade.result = won ? 'won' : 'lost';
+      history.push(trade);
+      renderOpenTrades();
+      saveState();
+    }
+
+    function reassessTrade(trade) {
+      fetch('http://localhost:3000/api/update-trades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trades: [trade] })
+      })
+      .then(r => r.json())
+      .then(() => showToast('Re-assessment complete'))
+      .catch(() => showToast('Failed to reassess'));
+    }
+
+    function commitSelected() {
+      document.querySelectorAll('.select-trade:checked').forEach(cb => {
+        const idx = cb.getAttribute('data-index');
+        commitTrade(currentSignals[idx]);
+        cb.checked = false;
+      });
+    }
+
+    function rejectSelected() {
+      document.querySelectorAll('.select-trade:checked').forEach(cb => {
+        const idx = cb.getAttribute('data-index');
+        rejectTrade(currentSignals[idx]);
+        cb.closest('.signal-card').remove();
+        cb.checked = false;
+      });
+    }
+    function BuyCreditsModal(props) {
+      const onClose = props.onClose;
+      const bundles = [
+        { credits: 100, price: 'M30' },
+        { credits: 500, price: 'M100' },
+        { credits: 2000, price: 'M300' }
+      ];
+      const [bundleIndex, setBundleIndex] = React.useState(0);
+      const [method, setMethod] = React.useState('mpesa');
+      const [phone, setPhone] = React.useState('');
+      const [loading, setLoading] = React.useState(false);
+
+      const handlePurchase = async () => {
+        setLoading(true);
+        try {
+          await fetch('/api/purchase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bundle: bundles[bundleIndex].credits, method, phone })
+          });
+          updateBalance(bundles[bundleIndex].credits);
+          showToast('Credits added successfully!');
+          onClose();
+        } catch (err) {
+          alert('Purchase failed');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return React.createElement('div', { className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center' },
+        React.createElement('div', { className: 'bg-white p-6 rounded shadow-md w-80 space-y-4' },
+          React.createElement('h3', { className: 'text-lg font-bold text-center' }, 'Buy Credits'),
+          React.createElement('div', null,
+            React.createElement('label', { className: 'block mb-1 font-semibold' }, 'Bundle'),
+            React.createElement('select', {
+              className: 'w-full border p-2 rounded',
+              onChange: function(e) { setBundleIndex(e.target.selectedIndex); }
+            },
+              bundles.map(function(b) { return React.createElement('option', { key: b.credits }, b.credits + ' credits = ' + b.price); })
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { className: 'block mb-1 font-semibold' }, 'Payment Method'),
+            React.createElement('select', {
+              className: 'w-full border p-2 rounded',
+              value: method,
+              onChange: function(e) { setMethod(e.target.value); }
+            },
+              React.createElement('option', { value: 'mpesa' }, 'M-Pesa'),
+              React.createElement('option', { value: 'ecocash' }, 'EcoCash'),
+              React.createElement('option', { value: 'card' }, 'Credit/Debit Card')
+            )
+          ),
+          ((method === 'mpesa' || method === 'ecocash') ?
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block mb-1 font-semibold' }, 'Phone Number'),
+              React.createElement('input', {
+                className: 'w-full border p-2 rounded',
+                value: phone,
+                onChange: function(e) { setPhone(e.target.value); },
+                placeholder: 'e.g. 0712345678'
+              })
+            ) : null),
+          (method === 'card' ?
+            React.createElement('div', { className: 'text-sm text-gray-500 border border-dashed p-2 rounded' }, 'Card payment form placeholder') : null),
+          React.createElement('div', { className: 'flex justify-end gap-2' },
+            React.createElement('button', { className: 'px-3 py-1 border rounded', onClick: onClose }, 'Cancel'),
+            React.createElement('button', {
+              className: 'px-3 py-1 bg-indigo-600 text-white rounded',
+              onClick: handlePurchase,
+              disabled: loading
+            }, loading ? 'Processing…' : 'Buy')
+          )
+        )
+      );
+    }
+
+    document.getElementById('buyCreditsBtn').addEventListener('click', openModal);
+  </script>
+</body>
+</html>
