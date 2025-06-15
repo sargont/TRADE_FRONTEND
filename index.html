@@ -89,10 +89,22 @@
         </div>
         <button id="generate">Generate</button>
       </div>
+  <div class="flex gap-2 mb-2">
+    <button id="commitSelected" class="bg-green-600 text-white px-3 py-1 rounded">Commit Selected</button>
+    <button id="rejectSelected" class="bg-red-600 text-white px-3 py-1 rounded">Reject Selected</button>
+  </div>
   <div class="signals">
     <!-- Results will appear here -->
   </div>
   </div>
+  </div>
+  <div class="panel" id="openTradesPanel">
+    <h2>Open Trades</h2>
+    <div class="open-trades space-y-2"></div>
+  </div>
+  <div class="panel" id="historyPanel">
+    <h2>History</h2>
+    <div class="history space-y-2"></div>
   </div>
   <script>
     const pairsByCategory = {
@@ -195,6 +207,7 @@
       }
 
       if (results.length) {
+        currentSignals = results;
         renderSignals(results);
         creditBalance -= cost;
         document.getElementById('creditBalance').textContent = creditBalance;
@@ -203,17 +216,17 @@
         document.querySelector('.signals').innerHTML = '<p>No signals available</p>';
       }
     }
-
     function renderSignals(signals) {
       const container = document.querySelector('.signals');
       container.innerHTML = '';
-      signals.forEach(sig => {
+      signals.forEach((sig, i) => {
         const card = document.createElement('div');
         card.className = 'signal-card';
         const typeClass = sig.type.toLowerCase().includes('buy') ? 'buy' : 'sell';
         const confidence = sig.confidence || 0;
         const go = confidence >= 7;
         card.innerHTML = `
+          <input type="checkbox" class="select-trade mb-1" data-index="${i}">
           <h3>${sig.pair}</h3>
           <div class="${typeClass}">${sig.type}</div>
           <p>Entry: ${sig.entry}<br/>Stop Loss: ${sig.sl}<br/>Take Profit: ${sig.tp}<br/>Valid For: <span class="valid">${sig.validFor}</span></p>
@@ -222,12 +235,21 @@
             <div class="confidence-bar" style="width:${confidence * 10}%;background:${go ? '#2ecc71' : '#e74c3c'}"></div>
             <span class="confidence-label">${confidence}/10</span>
           </div>
-        `;
+          <div class="flex justify-end gap-2 mt-2">
+            <button class="commit bg-green-600 text-white px-2 py-1 rounded text-sm">Commit</button>
+            <button class="reject bg-red-600 text-white px-2 py-1 rounded text-sm">Reject</button>
+          </div>`;
+        card.querySelector('.commit').addEventListener('click', () => commitTrade(sig));
+        card.querySelector('.reject').addEventListener('click', () => rejectTrade(sig));
         container.appendChild(card);
       });
     }
 
     document.getElementById('generate').addEventListener('click', fetchSignals);
+    document.getElementById("commitSelected").addEventListener("click", commitSelected);
+    document.getElementById("rejectSelected").addEventListener("click", rejectSelected);
+    renderOpenTrades();
+    renderHistory();
   </script>
   <div id="toast" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded hidden"></div>
   <div id="react-root"></div>
@@ -235,6 +257,9 @@
   <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
   <script>
     let creditBalance = 0;
+    let openTrades = [];
+    let history = [];
+    let currentSignals = [];
 
     function showToast(msg) {
       const t = document.getElementById('toast');
@@ -259,6 +284,80 @@
       document.getElementById('creditBalance').textContent = creditBalance;
     }
 
+    function commitTrade(trade) {
+      openTrades.push(Object.assign({ id: Date.now() }, trade));
+      renderOpenTrades();
+    }
+
+    function rejectTrade(trade) {
+      showToast('Trade rejected');
+    }
+
+    function renderOpenTrades() {
+      const container = document.querySelector('.open-trades');
+      container.innerHTML = '';
+      openTrades.forEach((t, i) => {
+        const div = document.createElement('div');
+        div.className = 'border p-2 rounded flex justify-between items-center';
+        div.innerHTML = `<div>${t.pair} - ${t.type}</div>
+          <div class="flex gap-2">
+            <button class="win bg-green-600 text-white px-2 py-1 rounded text-sm">Won</button>
+            <button class="lose bg-red-600 text-white px-2 py-1 rounded text-sm">Lost</button>
+            <button class="reassess bg-indigo-600 text-white px-2 py-1 rounded text-sm">Re-assess</button>
+          </div>`;
+        div.querySelector('.win').addEventListener('click', () => closeTrade(i, true));
+        div.querySelector('.lose').addEventListener('click', () => closeTrade(i, false));
+        div.querySelector('.reassess').addEventListener('click', () => reassessTrade(t));
+        container.appendChild(div);
+      });
+    }
+
+    function renderHistory() {
+      const container = document.querySelector('.history');
+      container.innerHTML = '';
+      history.forEach(tr => {
+        const div = document.createElement('div');
+        div.className = 'border p-2 rounded';
+        div.textContent = `${tr.pair} - ${tr.type} (${tr.result})`;
+        container.appendChild(div);
+      });
+    }
+
+    function closeTrade(index, won) {
+      const trade = openTrades.splice(index, 1)[0];
+      trade.result = won ? 'won' : 'lost';
+      history.push(trade);
+      renderOpenTrades();
+      renderHistory();
+    }
+
+    function reassessTrade(trade) {
+      fetch('http://localhost:3000/api/update-trades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trades: [trade] })
+      })
+      .then(r => r.json())
+      .then(() => showToast('Re-assessment complete'))
+      .catch(() => showToast('Failed to reassess'));
+    }
+
+    function commitSelected() {
+      document.querySelectorAll('.select-trade:checked').forEach(cb => {
+        const idx = cb.getAttribute('data-index');
+        commitTrade(currentSignals[idx]);
+        cb.checked = false;
+      });
+    }
+
+    function rejectSelected() {
+      document.querySelectorAll('.select-trade:checked').forEach(cb => {
+        const idx = cb.getAttribute('data-index');
+        rejectTrade(currentSignals[idx]);
+        cb.closest('.signal-card').remove();
+        cb.checked = false;
+      });
+    }
     function BuyCreditsModal(props) {
       const onClose = props.onClose;
       const bundles = [
