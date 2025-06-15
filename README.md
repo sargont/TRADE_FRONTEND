@@ -1,5 +1,6 @@
 # TRADE_FRONTEND
 Frontend for a forex and commodity trading information portal.
+All API requests target `http://localhost:3000`.
 
 When the backend API is unavailable, the signal form falls back to random test
 data so developers can continue working on the UI.
