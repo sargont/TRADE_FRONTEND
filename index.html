@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sargon Trading Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet">
+
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
   <style>
     * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
     body { margin: 0; background-color: #f7f9fb; color: #1D3557; }
@@ -36,6 +39,10 @@
       <a href="#">News</a>
       <a href="#">English</a>
     </nav>
+    <div class="flex items-center gap-4">
+      <span>Credits: <span id="creditBalance">0</span></span>
+      <button id="buyCreditsBtn" class="bg-indigo-600 text-white px-3 py-1 rounded">Buy Credits</button>
+    </div>
   </header>
 
   <div class="container">
@@ -55,6 +62,7 @@
         <div class="field">
           <label for="pairs">Pairs</label>
           <select id="pairs" multiple size="5"></select>
+
         </div>
         <div class="field">
           <label for="duration">Duration</label>
@@ -78,13 +86,16 @@
             <span id="riskVal">2%</span>
           </div>
         </div>
+
         <button id="generate">Generate</button>
       </div>
   <div class="signals">
     <!-- Results will appear here -->
   </div>
+
   </div>
   </div>
+
   <script>
     const pairsByCategory = {
       Forex: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'USD/CAD', 'AUD/USD'],
@@ -196,5 +207,104 @@
 
     document.getElementById('generate').addEventListener('click', fetchSignals);
   </script>
+
+  <div id="toast" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded hidden"></div>
+  <div id="react-root"></div>
+  <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  <script type="text/babel">
+    let creditBalance = 0;
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 3000);
+    }
+
+    function openModal() {
+      ReactDOM.render(<BuyCreditsModal onClose={closeModal} />, document.getElementById('react-root'));
+    }
+
+    function closeModal() {
+      ReactDOM.unmountComponentAtNode(document.getElementById('react-root'));
+    }
+
+    function updateBalance(credits) {
+      creditBalance += credits;
+      document.getElementById('creditBalance').textContent = creditBalance;
+    }
+
+    function BuyCreditsModal({ onClose }) {
+      const bundles = [
+        { credits: 100, price: 'M30' },
+        { credits: 500, price: 'M100' },
+        { credits: 2000, price: 'M300' }
+      ];
+      const [bundle, setBundle] = React.useState(bundles[0]);
+      const [method, setMethod] = React.useState('mpesa');
+      const [phone, setPhone] = React.useState('');
+      const [loading, setLoading] = React.useState(false);
+
+      const handlePurchase = async () => {
+        setLoading(true);
+        try {
+          await fetch('/api/purchase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bundle: bundle.credits, method, phone })
+          });
+          updateBalance(bundle.credits);
+          showToast('Credits added successfully!');
+          onClose();
+        } catch (err) {
+          alert('Purchase failed');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded shadow-md w-80 space-y-4">
+            <h3 className="text-lg font-bold text-center">Buy Credits</h3>
+            <div>
+              <label className="block mb-1 font-semibold">Bundle</label>
+              <select className="w-full border p-2 rounded" onChange={e => setBundle(bundles[e.target.selectedIndex])}>
+                {bundles.map(b => (
+                  <option key={b.credits}>{b.credits} credits = {b.price}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block mb-1 font-semibold">Payment Method</label>
+              <select className="w-full border p-2 rounded" value={method} onChange={e => setMethod(e.target.value)}>
+                <option value="mpesa">M-Pesa</option>
+                <option value="ecocash">EcoCash</option>
+                <option value="card">Credit/Debit Card</option>
+              </select>
+            </div>
+            {(method === 'mpesa' || method === 'ecocash') && (
+              <div>
+                <label className="block mb-1 font-semibold">Phone Number</label>
+                <input className="w-full border p-2 rounded" value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g. 0712345678" />
+              </div>
+            )}
+            {method === 'card' && (
+              <div className="text-sm text-gray-500 border border-dashed p-2 rounded">Card payment form placeholder</div>
+            )}
+            <div className="flex justify-end gap-2">
+              <button className="px-3 py-1 border rounded" onClick={onClose}>Cancel</button>
+              <button className="px-3 py-1 bg-indigo-600 text-white rounded" onClick={handlePurchase} disabled={loading}>{loading ? 'Processing…' : 'Buy'}</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    document.getElementById('buyCreditsBtn').addEventListener('click', openModal);
+  </script>
+
 </body>
 </html>
