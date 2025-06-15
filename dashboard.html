@@ -109,6 +109,9 @@
       Crypto: ['BTC/USD', 'ETH/USD', 'XRP/USD', 'LTC/USD']
     };
 
+    const API_BASE = 'http://localhost:3000';
+    const API_KEY = 'your_app_key'; // replace with your assigned key
+
     // Basic test data used when API calls fail
     function dummySignal(pair, duration, balance, risk) {
       const direction = Math.random() > 0.5 ? 'Buy' : 'Sell';
@@ -190,7 +193,9 @@
       for (const pair of pairs) {
         const params = new URLSearchParams({ pair, category, duration, balance, risk });
         try {
-          const res = await fetch('/api/signal?' + params.toString());
+          const res = await fetch(`${API_BASE}/api/signal?` + params.toString(), {
+            headers: { 'x-api-key': API_KEY }
+          });
           if (!res.ok) throw new Error('Bad response');
           const data = await res.json();
           results.push(data);
@@ -289,17 +294,17 @@
     }
 
     async function commitTrade(trade) {
-      if (!confirm('Submit trade to Direv for execution?')) return;
+      if (!confirm('Submit trade to Deriv for execution?')) return;
       try {
-        await fetch('/api/direv', {
+        await fetch(`${API_BASE}/api/deriv`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
           body: JSON.stringify(trade)
         });
         showToast('Trade submitted');
       } catch (err) {
-        console.warn('Direv submission failed, recording locally');
-        showToast('Direv submission failed - saved locally');
+        console.warn('Deriv submission failed, recording locally');
+        showToast('Deriv submission failed - saved locally');
       }
       openTrades.push(Object.assign({ id: Date.now() }, trade));
       saveState();
@@ -338,9 +343,9 @@
     }
 
     function reassessTrade(trade) {
-        fetch('/api/reassess-trades', {
+        fetch(`${API_BASE}/api/reassess-trades`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
         body: JSON.stringify({ trades: [trade] })
       })
       .then(r => r.json())
@@ -379,9 +384,9 @@
       const handlePurchase = async () => {
         setLoading(true);
         try {
-          await fetch('http://localhost:3000/api/purchase', {
+          await fetch(`${API_BASE}/api/purchase`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
             body: JSON.stringify({ bundle: bundles[bundleIndex].credits, method, phone })
           });
           updateBalance(bundles[bundleIndex].credits);

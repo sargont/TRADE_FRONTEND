@@ -28,6 +28,8 @@
     </section>
   </main>
   <script>
+    const API_BASE = 'http://localhost:3000';
+    const API_KEY = 'your_app_key';
     function loadHistory(){
       const openList = document.getElementById('openList');
       const historyDiv = document.getElementById('historyList');
@@ -83,9 +85,9 @@
     }
 
     function reassessTrade(trade){
-      fetch('/api/reassess-trades', {
+      fetch(`${API_BASE}/api/reassess-trades`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
         body: JSON.stringify({ trades: [trade] })
       })
       .then(r => r.json())
