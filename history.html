@@ -83,7 +83,7 @@
     }
 
     function reassessTrade(trade){
-      fetch('http://localhost:3000/api/reassess-trades', {
+      fetch('/api/reassess-trades', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trades: [trade] })
