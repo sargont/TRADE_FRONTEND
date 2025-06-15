@@ -190,7 +190,7 @@
       for (const pair of pairs) {
         const params = new URLSearchParams({ pair, category, duration, balance, risk });
         try {
-          const res = await fetch('http://localhost:3000/api/signal?' + params.toString());
+          const res = await fetch('/api/signal?' + params.toString());
           if (!res.ok) throw new Error('Bad response');
           const data = await res.json();
           results.push(data);
@@ -291,7 +291,7 @@
     async function commitTrade(trade) {
       if (!confirm('Submit trade to Direv for execution?')) return;
       try {
-        await fetch('http://localhost:3000/api/direv', {
+        await fetch('/api/direv', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(trade)
@@ -338,7 +338,7 @@
     }
 
     function reassessTrade(trade) {
-        fetch('http://localhost:3000/api/reassess-trades', {
+        fetch('/api/reassess-trades', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trades: [trade] })
