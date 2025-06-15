@@ -298,8 +298,8 @@
         });
         showToast('Trade submitted');
       } catch (err) {
-        showToast('Direv submission failed');
-        return;
+        console.warn('Direv submission failed, recording locally');
+        showToast('Direv submission failed - saved locally');
       }
       openTrades.push(Object.assign({ id: Date.now() }, trade));
       saveState();
