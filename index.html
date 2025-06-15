@@ -60,11 +60,39 @@
           </select>
         </div>
         <div class="field">
-          <label for="pairs">Pairs</label>
-          <select id="pairs" multiple size="5"></select>
-
-        </div>
         <div class="field">
+          <label>Cost</label>
+          <div id="costNotice">0 credit</div>
+        </div>
+    function calculatePairs() {
+      const select = document.getElementById('pairs');
+      let pairs = Array.from(select.selectedOptions).map(o => o.value);
+      const category = document.getElementById('category').value;
+      if (pairs.includes('AUTO')) {
+        pairs = pairsByCategory[category];
+      }
+      return pairs;
+    }
+
+    function updateCost() {
+      const cost = calculatePairs().length;
+      document.getElementById('costNotice').textContent = cost + (cost === 1 ? ' credit' : ' credits');
+      return cost;
+    }
+
+      updateCost();
+    document.getElementById('pairs').addEventListener('change', updateCost);
+
+    updateCost();
+      let pairs = calculatePairs();
+      const cost = pairs.length;
+
+      if (creditBalance < cost) {
+        showToast('Not enough credit to execute your query. Please top up.');
+        return;
+        creditBalance -= cost;
+        document.getElementById('creditBalance').textContent = creditBalance;
+        updateCost();
           <label for="duration">Duration</label>
           <select id="duration">
             <option>1min</option>
