@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sargon Trading Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet">
+
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
   <style>
     * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
     body { margin: 0; background-color: #f7f9fb; color: #1D3557; }
@@ -60,6 +62,7 @@
         <div class="field">
           <label for="pairs">Pairs</label>
           <select id="pairs" multiple size="5"></select>
+
         </div>
         <div class="field">
           <label for="duration">Duration</label>
@@ -83,13 +86,16 @@
             <span id="riskVal">2%</span>
           </div>
         </div>
+
         <button id="generate">Generate</button>
       </div>
   <div class="signals">
     <!-- Results will appear here -->
   </div>
+
   </div>
   </div>
+
   <script>
     const pairsByCategory = {
       Forex: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'USD/CAD', 'AUD/USD'],
@@ -201,6 +207,7 @@
 
     document.getElementById('generate').addEventListener('click', fetchSignals);
   </script>
+
   <div id="toast" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded hidden"></div>
   <div id="react-root"></div>
   <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
@@ -298,5 +305,6 @@
 
     document.getElementById('buyCreditsBtn').addEventListener('click', openModal);
   </script>
+
 </body>
 </html>
